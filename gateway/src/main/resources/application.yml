@@ -1,0 +1,15 @@
+spring:
+  tarantool:
+    host: localhost
+    port: 3301
+    username: tarantool
+    password: tarantool
+    connection:
+      retries: 5
+      timeout: 1000
+
+server:
+  http2:
+    enabled: true
+  port: 7777
+
