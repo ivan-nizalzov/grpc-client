@@ -1,18 +1,18 @@
-package dev.nizalzov.gateway.config;
+package dev.nizalzov.gateway.tarantool;
 
 import dev.nizalzov.gateway.exception.TarantoolConfigException;
 import io.tarantool.driver.api.*;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
+import jakarta.annotation.PostConstruct;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 import static io.tarantool.driver.api.connection.TarantoolConnectionSelectionStrategyType.PARALLEL_ROUND_ROBIN;
 
-@Configuration
-public class TarantoolConfig {
+@Component
+public class CustomTarantoolClient {
     private final Logger logger = LogManager.getLogger(this.getClass());
 
     @Value("${spring.tarantool.host}")
@@ -33,8 +33,16 @@ public class TarantoolConfig {
     @Value("${spring.tarantool.connection.timeout}")
     private Integer TIMEOUT_MS;
 
-    @Bean
-    public TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient() {
+    private TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> client;
+
+    @PostConstruct
+    void init() {
+        client = makeClient();
+    }
+
+    public TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> makeClient() {
+
+        logger.info("Connecting to Tarantool at {}:{}", HOST, PORT);
 
         if (USERNAME == null || PASSWORD == null) {
             throw new TarantoolConfigException(
@@ -50,6 +58,7 @@ public class TarantoolConfig {
         return TarantoolClientFactory.createClient()
                 .withAddress(HOST, PORT)
                 .withCredentials(USERNAME, PASSWORD)
+                .withConnections(10)
                 .withConnectionSelectionStrategy(PARALLEL_ROUND_ROBIN)
                 .withRetryingByNumberOfAttempts(
                         RETRIES,
@@ -57,5 +66,9 @@ public class TarantoolConfig {
                                 .withRequestTimeout(TIMEOUT_MS)
                 )
                 .build();
+    }
+
+    public TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> getClient() {
+        return client;
     }
 }

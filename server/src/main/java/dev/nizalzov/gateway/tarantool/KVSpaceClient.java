@@ -12,8 +12,8 @@ import java.util.concurrent.ExecutionException;
 @Component
 public class KVSpaceClient extends AbstractSpaceClient {
 
-    public KVSpaceClient(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
-        super(tarantoolClient, SpaceNames.KV);
+    public KVSpaceClient(CustomTarantoolClient customTarantoolClient) {
+        super(customTarantoolClient.getClient(), SpaceNames.KV);
     }
 
     @Override
