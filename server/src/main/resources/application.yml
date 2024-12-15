@@ -6,10 +6,8 @@ spring:
     password: tarantool
     connection:
       retries: 5
-      timeout: 1000
+      timeout: 1000 # in milliseconds
 
-server:
-  http2:
-    enabled: true
-  port: 7777
-
+grpc:
+  server:
+    port: 8080

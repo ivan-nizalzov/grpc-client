@@ -1,0 +1,22 @@
+services:
+  tarantool:
+    image: tarantool/tarantool:3.2.0
+    container_name: tarantool_instance
+    volumes:
+      - ./docker/init.lua:/usr/local/share/tarantool/init.lua:ro
+    ports:
+      - "3301:3301"
+    command: tarantool /usr/local/share/tarantool/init.lua
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: grpc_server
+    ports:
+      - "8080:8080"
+    depends_on:
+      - tarantool
+    environment:
+      TARANTOOL_HOST: tarantool
+      TARANTOOL_PORT: 3301

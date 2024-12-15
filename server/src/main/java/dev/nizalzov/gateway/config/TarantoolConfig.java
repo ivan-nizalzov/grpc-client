@@ -1,8 +1,10 @@
 package dev.nizalzov.gateway.config;
 
+import dev.nizalzov.gateway.exception.TarantoolConfigException;
 import io.tarantool.driver.api.*;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
-import io.tarantool.driver.auth.SimpleTarantoolCredentials;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +13,7 @@ import static io.tarantool.driver.api.connection.TarantoolConnectionSelectionStr
 
 @Configuration
 public class TarantoolConfig {
+    private final Logger logger = LogManager.getLogger(this.getClass());
 
     @Value("${spring.tarantool.host}")
     private String HOST;
@@ -33,9 +36,20 @@ public class TarantoolConfig {
     @Bean
     public TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient() {
 
+        if (USERNAME == null || PASSWORD == null) {
+            throw new TarantoolConfigException(
+                    "Tarantool's username and password aren't provided.");
+        }
+
+        if (HOST == null || PORT == null) {
+            logger.warn("Tarantool's host and port aren't provided. Using default values: localhost:3301");
+            HOST = "localhost";
+            PORT = 3301;
+        }
+
         return TarantoolClientFactory.createClient()
-                .withAddress(new TarantoolServerAddress(HOST, PORT).getSocketAddress())
-                .withCredentials(new SimpleTarantoolCredentials(USERNAME, PASSWORD))
+                .withAddress(HOST, PORT)
+                .withCredentials(USERNAME, PASSWORD)
                 .withConnectionSelectionStrategy(PARALLEL_ROUND_ROBIN)
                 .withRetryingByNumberOfAttempts(
                         RETRIES,
