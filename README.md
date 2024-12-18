@@ -12,7 +12,7 @@
 В качестве клиента для работы с БД Tarantool используется библиотеку **tarantool/cartridge-java** версии 0.13.0
 
 Данные сохраняются в спейс 'KV' cо следующей схемой данных:
-```json
+```
 {
     {name = 'key', type = 'string'},
     {name = 'value', type = 'varbinary', is_nullable=true}
@@ -28,7 +28,7 @@
 - Docker compose.
 
 ### Пример сообщения для отправки в Postman:
-```json
+```
 {
     "key": "test_key",
     "value": "dGVzdF92YWx1ZQ=="  // "test_value" в base64
