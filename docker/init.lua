@@ -10,6 +10,28 @@ box.space.KV:format({
 })
 box.space.KV:create_index('primary', {parts = {'key'}, if_not_exists = true})
 
-dofile('/usr/local/share/tarantool/functions.lua')
+function count_tuples()
+    return box.space.KV:count()
+end
+
+function range_tuples(key_since, key_to)
+    if not key_since or not key_to then
+        error("Both `key_since` and `key_to` parameters are required")
+    end
+
+    local result = box.space.KV.index[0]:select({key_since}, {iterator = 'GE'})
+
+    local filtered_result = {}
+    for _, tuple in ipairs(result) do
+        local key = tuple[1]
+        if key_to and key > key_to then
+            break
+        end
+        table.insert(filtered_result, tuple)
+    end
+
+    return filtered_result
+end
 
 box.schema.func.create('count_tuples', {if_not_exists = true})
+box.schema.func.create('range_tuples', {if_not_exists = true})

@@ -1,17 +1,13 @@
-package dev.nizalzov.gateway.tarantool;
+package dev.nizalzov.server.tarantool;
 
-import dev.nizalzov.gateway.exception.TarantoolRepoException;
+import dev.nizalzov.server.exception.TarantoolRepoException;
 import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
 import io.tarantool.driver.api.conditions.Conditions;
-import io.tarantool.driver.api.space.TarantoolSpaceOperations;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
-import io.tarantool.driver.exceptions.TarantoolClientException;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 @Component
 public class KVSpaceRepository extends AbstractSpaceRepository {
@@ -43,11 +39,10 @@ public class KVSpaceRepository extends AbstractSpaceRepository {
     }
 
     @Override
-    public TarantoolResult<TarantoolTuple> selectMany(Conditions conditions) {
+    public List<List<?>> selectMany(String keySince, String keyTo) {
         try (TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> client = tarantoolConfig.makeClient()) {
-            return getSpace(client)
-                    .select(conditions)
-                    .get();
+            List<?> rangeTuples = client.call("range_tuples", keySince, keyTo).get();
+            return (List<List<?>>) rangeTuples;
         } catch (Exception e) {
             throw new TarantoolRepoException(e.getMessage());
         }
@@ -67,9 +62,8 @@ public class KVSpaceRepository extends AbstractSpaceRepository {
     @Override
     public Integer countTuples() {
         try (TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> client = tarantoolConfig.makeClient()) {
-            List<?> list = client.call("count_tuples", Integer.class)
-                    .get();
-            return (Integer) list.get(0);
+            List<?> list = client.call("count_tuples").get();
+            return ((Number) list.get(0)).intValue();
         } catch (Exception e) {
             throw new TarantoolRepoException(e.getMessage());
         }
@@ -77,6 +71,16 @@ public class KVSpaceRepository extends AbstractSpaceRepository {
 
     public enum Fields {
         KEY,
-        VALUE
+        VALUE;
+
+        private String name;
+
+        Fields() {
+            this.name = this.name().toLowerCase();
+        }
+
+        public String getName() {
+            return name;
+        }
     }
 }

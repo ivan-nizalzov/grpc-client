@@ -1,6 +1,6 @@
-package dev.nizalzov.gateway.tarantool;
+package dev.nizalzov.server.tarantool;
 
-import dev.nizalzov.gateway.exception.TarantoolConfigException;
+import dev.nizalzov.server.exception.TarantoolConfigException;
 import io.tarantool.driver.api.*;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import io.tarantool.driver.auth.SimpleTarantoolCredentials;

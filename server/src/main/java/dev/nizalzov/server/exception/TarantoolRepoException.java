@@ -1,4 +1,4 @@
-package dev.nizalzov.gateway.exception;
+package dev.nizalzov.server.exception;
 
 public class TarantoolRepoException extends RuntimeException {
     public TarantoolRepoException(String message) {

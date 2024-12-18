@@ -1,4 +1,4 @@
-package dev.nizalzov.gateway.tarantool;
+package dev.nizalzov.server.tarantool;
 
 import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
@@ -9,17 +9,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
+
 public abstract class AbstractSpaceRepository {
     private final Logger logger = LogManager.getLogger(this.getClass());
-
-//    private final TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient;
-//    private final TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>> space;
-
-//    public AbstractSpaceClient(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
-//                               String spaceName) {
-//        this.tarantoolClient = tarantoolClient;
-//        this.space = tarantoolClient.space(spaceName);
-//    }
 
     @Autowired
     protected TarantoolConfig tarantoolConfig;
@@ -34,7 +27,7 @@ public abstract class AbstractSpaceRepository {
 
     public abstract TarantoolResult<TarantoolTuple> select(Conditions conditions);
 
-    public abstract TarantoolResult<TarantoolTuple> selectMany(Conditions conditions);
+    public abstract List<List<?>> selectMany(String keySince, String keyTo);
 
     public abstract void delete(Conditions conditions);
 

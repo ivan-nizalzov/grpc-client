@@ -1,8 +1,8 @@
-package dev.nizalzov.gateway.service;
+package dev.nizalzov.server.service;
 
 import com.google.protobuf.ByteString;
-import dev.nizalzov.gateway.exception.GrpcServiceException;
-import dev.nizalzov.gateway.tarantool.KVSpaceRepository;
+import dev.nizalzov.server.exception.GrpcServiceException;
+import dev.nizalzov.server.tarantool.KVSpaceRepository;
 import dev.nizalzov.grpc.*;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
+import java.util.List;
 
 @GrpcService
 public class GrpcServiceImpl extends CustomServiceGrpc.CustomServiceImplBase {
@@ -38,22 +39,34 @@ public class GrpcServiceImpl extends CustomServiceGrpc.CustomServiceImplBase {
                 throw new GrpcServiceException("Key cannot be empty.");
             }
 
-            TarantoolTuple tarantoolTuple = makeTuple(request.getKey(), request.getValue().toByteArray());
-            TarantoolResult<TarantoolTuple> insertedTuple = kvSpaceRepository.insert(tarantoolTuple);
+            Conditions conditions = makeSelectConditions(request.getKey());
+            TarantoolResult<TarantoolTuple> selectedTuple = kvSpaceRepository.select(conditions);
 
-            if (!insertedTuple.isEmpty()) {
-                logger.info("Successfully inserted value into Tarantool for key '{}'", request.getKey());
-                responseObserver.onNext(
-                        PutResponse.newBuilder()
-                                .setSuccess(true)
-                                .build()
+            if (selectedTuple.isEmpty()) {
+                TarantoolTuple tarantoolTuple = makeTuple(request.getKey(), request.getValue().toByteArray());
+                TarantoolResult<TarantoolTuple> insertedTuple = kvSpaceRepository.insert(tarantoolTuple);
+
+                if (!insertedTuple.isEmpty()) {
+                    logger.info("Successfully inserted value into Tarantool for key '{}'", request.getKey());
+                    responseObserver.onNext(
+                            PutResponse.newBuilder()
+                                    .setSuccess(true)
+                                    .build()
+                    );
+                }
+            } else {
+                logger.error("Key '{}' already exists", request.getKey());
+                responseObserver.onError(
+                        Status.ALREADY_EXISTS
+                                .withDescription(String.format("Key '%s' already exists", request.getKey()))
+                                .asRuntimeException()
                 );
             }
         } catch (GrpcServiceException e) {
             logger.error("Failed to put value with key '{}': {}", request.getKey(), e.getMessage());
 
             responseObserver.onError(
-                    Status.INTERNAL
+                    Status.INVALID_ARGUMENT
                             .withDescription(String.format("Failed to put value with key '%s'", request.getKey()))
                             .augmentDescription("Key: " + request.getKey())
                             .withCause(e)
@@ -73,6 +86,7 @@ public class GrpcServiceImpl extends CustomServiceGrpc.CustomServiceImplBase {
             TarantoolResult<TarantoolTuple> selectedTuple = kvSpaceRepository.select(conditions);
 
             if (selectedTuple.isEmpty()) {
+                logger.error("Key '{}' not found", request.getKey());
                 responseObserver.onError(
                         Status.NOT_FOUND
                                 .withDescription(String.format("Key '%s' not found", request.getKey()))
@@ -82,7 +96,11 @@ public class GrpcServiceImpl extends CustomServiceGrpc.CustomServiceImplBase {
                 logger.info("Successfully selected value from Tarantool for key '{}'", request.getKey());
                 responseObserver.onNext(
                         GetResponse.newBuilder()
-                                .setValue(ByteString.copyFrom(selectedTuple.get(1).getByteArray(KVSpaceRepository.Fields.VALUE.name())))
+                                .setValue(ByteString.copyFrom(
+                                        selectedTuple
+                                                .get(0)
+                                                .getByteArray(KVSpaceRepository.Fields.VALUE.getName()))
+                                )
                                 .build()
                 );
             }
@@ -101,6 +119,7 @@ public class GrpcServiceImpl extends CustomServiceGrpc.CustomServiceImplBase {
             TarantoolResult<TarantoolTuple> selectedTuple = kvSpaceRepository.select(conditions);
 
             if (selectedTuple.isEmpty()) {
+                logger.error("Key '{}' not found", request.getKey());
                 responseObserver.onError(
                         Status.NOT_FOUND
                                 .withDescription(String.format("Key '%s' not found", request.getKey()))
@@ -134,26 +153,30 @@ public class GrpcServiceImpl extends CustomServiceGrpc.CustomServiceImplBase {
             TarantoolResult<TarantoolTuple> selectedTo = kvSpaceRepository.select(conditionsTo);
 
             if (selectedSince.isEmpty() || selectedTo.isEmpty()) {
+                logger.error("Keys '{}' or '{}' not found", request.getKeySince(), request.getKeyTo());
                 responseObserver.onError(
                         Status.NOT_FOUND
                                 .withDescription(String.format("Keys '%s' or '%s' not found", request.getKeySince(), request.getKeyTo()))
                                 .asRuntimeException()
                 );
             } else {
-                Conditions rangeCondition = Conditions.greaterOrEquals(KVSpaceRepository.Fields.KEY.name(), request.getKeySince())
-                        .andLessOrEquals(KVSpaceRepository.Fields.KEY.name(), request.getKeyTo());
-
-                TarantoolResult<TarantoolTuple> result = kvSpaceRepository.selectMany(rangeCondition);
+                List<List<?>> result = kvSpaceRepository.selectMany(request.getKeySince(), request.getKeyTo());
+                List<?> tuples = result.get(0);
 
                 RangeResponse.Builder responseBuilder = RangeResponse.newBuilder();
-                for (TarantoolTuple tuple : result) {
+                tuples.forEach(row -> {
+                    List<?> tupleList = (List<?>) row;
+                    String key = (String) tupleList.get(0);
+                    byte[] value = (byte[]) tupleList.get(1);
+
                     responseBuilder.addPairs(
                             KeyValuePair.newBuilder()
-                                    .setKey(tuple.getString(KVSpaceRepository.Fields.KEY.name()))
-                                    .setValue(ByteString.copyFrom(tuple.getByteArray(KVSpaceRepository.Fields.VALUE.name())))
+                                    .setKey(key)
+                                    .setValue(ByteString.copyFrom(value))
                                     .build()
                     );
-                }
+                });
+
                 responseObserver.onNext(responseBuilder.build());
             }
         } catch (GrpcServiceException e) {
@@ -186,6 +209,6 @@ public class GrpcServiceImpl extends CustomServiceGrpc.CustomServiceImplBase {
     }
 
     private Conditions makeSelectConditions(String key) {
-        return Conditions.equals(KVSpaceRepository.Fields.KEY.name(), key);
+        return Conditions.equals(KVSpaceRepository.Fields.KEY.getName(), key);
     }
 }

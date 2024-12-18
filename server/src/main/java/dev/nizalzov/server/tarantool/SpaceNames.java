@@ -1,4 +1,4 @@
-package dev.nizalzov.gateway.tarantool;
+package dev.nizalzov.server.tarantool;
 
 public class SpaceNames {
     public static final String KV = "KV";

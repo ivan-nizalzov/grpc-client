@@ -1,23 +1,27 @@
 services:
   tarantool:
-    image: tarantool/tarantool:3.2.0
+    image: tarantool/tarantool:latest
     container_name: tarantool_instance
-    volumes:
-      - ./docker/init.lua:/usr/local/share/tarantool/init.lua:ro
-      - ./docker/functions.lua:/usr/local/share/tarantool/functions.lua:ro
     ports:
       - "3301:3301"
-    command: tarantool /usr/local/share/tarantool/init.lua
+    volumes:
+      - /data/dir/on/host:/var/lib/tarantool
+      - ./docker/init.lua:/usr/share/tarantool/init.lua
+    environment:
+      TARANTOOL_MEMORY_LIMIT: 512MB
+      TARANTOOL_USER: admin
+    restart: unless-stopped
 
   app:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: ./docker/Dockerfile
     container_name: grpc_server
     ports:
-      - "8081:8082"
+      - "8081:8081"
     depends_on:
       - tarantool
     environment:
-      TARANTOOL_HOST: tarantool
+      TARANTOOL_HOST: tarantool_instance
       TARANTOOL_PORT: 3301
+    restart: unless-stopped
