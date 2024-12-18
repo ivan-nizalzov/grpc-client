@@ -3,16 +3,18 @@ package dev.nizalzov.gateway.tarantool;
 import dev.nizalzov.gateway.exception.TarantoolConfigException;
 import io.tarantool.driver.api.*;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
-import jakarta.annotation.PostConstruct;
+import io.tarantool.driver.auth.SimpleTarantoolCredentials;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 
 import static io.tarantool.driver.api.connection.TarantoolConnectionSelectionStrategyType.PARALLEL_ROUND_ROBIN;
 
-@Component
-public class CustomTarantoolClient {
+@Configuration
+public class TarantoolConfig {
     private final Logger logger = LogManager.getLogger(this.getClass());
 
     @Value("${spring.tarantool.host}")
@@ -35,11 +37,8 @@ public class CustomTarantoolClient {
 
     private TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> client;
 
-    @PostConstruct
-    void init() {
-        client = makeClient();
-    }
-
+    @Bean
+    @Scope("prototype")
     public TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> makeClient() {
 
         logger.info("Connecting to Tarantool at {}:{}", HOST, PORT);
@@ -56,9 +55,9 @@ public class CustomTarantoolClient {
         }
 
         return TarantoolClientFactory.createClient()
+                .withTarantoolClientConfig(makeClientConfig())
                 .withAddress(HOST, PORT)
-                .withCredentials(USERNAME, PASSWORD)
-                .withConnections(10)
+//                .withCredentials(USERNAME, PASSWORD)
                 .withConnectionSelectionStrategy(PARALLEL_ROUND_ROBIN)
                 .withRetryingByNumberOfAttempts(
                         RETRIES,
@@ -68,7 +67,11 @@ public class CustomTarantoolClient {
                 .build();
     }
 
-    public TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> getClient() {
-        return client;
+    private TarantoolClientConfig makeClientConfig() {
+        return TarantoolClientConfig.builder()
+                .withCredentials(new SimpleTarantoolCredentials(USERNAME, PASSWORD))
+                .withConnectTimeout(TIMEOUT_MS)
+                .withRequestTimeout(TIMEOUT_MS)
+                .build();
     }
 }

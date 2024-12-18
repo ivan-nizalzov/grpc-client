@@ -11,7 +11,6 @@ public class Test {
             var client = TarantoolClientFactory.createClient()
                     .withAddress("localhost", 3301)
                     .withCredentials("tarantool", "tarantool")
-                    .withConnections(10)
                     .withConnectionSelectionStrategy(PARALLEL_ROUND_ROBIN)
                     .withRetryingByNumberOfAttempts(
                             5,
@@ -20,9 +19,10 @@ public class Test {
                     )
                     .build();
 
+
             System.out.println();
-            System.out.println("Is client instance of TarantoolClient? " + (client instanceof io.tarantool.driver.api.TarantoolClient));
-            System.out.println(client.toString());
+            System.out.println("Is client instance of TarantoolClient? Answer: " + (client instanceof io.tarantool.driver.api.TarantoolClient));
+            System.out.println("Tarantool version: " + client.getVersion());
 
         } catch (Exception e) {
             e.printStackTrace();

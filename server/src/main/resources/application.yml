@@ -10,4 +10,8 @@ spring:
 
 grpc:
   server:
-    port: 8080
+    port: 8081
+
+server:
+  http2:
+    enabled: true
