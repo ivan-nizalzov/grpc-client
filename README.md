@@ -40,7 +40,7 @@
 ### Для запуска приложения:
 
 1. `mvn clean package`
-2. Тут должен быть `docker-compose-up`, но, к сожалению, ни официальная документация, ни Google, ни детальное изучение кода **testcontainers-java-tarantool-master** и **cartridge-java-master** добиться того, чтобы Tarantool 3.2.0 запустился в контейнере.
+2. Тут должен быть `docker-compose-up`, но, к сожалению, ни официальная документация, ни Google, ни детальное изучение кода **testcontainers-java-tarantool-master** и **cartridge-java-master** не помогли добиться того, чтобы Tarantool 3.2.0 запустился в контейнере.
 Даже эта команда не работает (взял отсюда: https://www.tarantool.io/en/doc/2.11/how-to/getting_started_db/): 
 ```dockerfile
 docker run \
@@ -49,10 +49,12 @@ docker run \
   -v /data/dir/on/host:/var/lib/tarantool \
   tarantool/tarantool:latest
 ```
-И тесты в `io.tarantool.driver.integration.ProxyTarantoolClientExampleIT` из библиотеки **cartridge-java-master** не работают.
+И тесты в `io.tarantool.driver.integration.ProxyTarantoolClientExampleIT` из библиотеки **cartridge-java-master** не работают, поэтому мне не удалось написать тесты с помощью TestContainers.
 На официальном сайте очень мало актуальной информации по конфигурированию Tarantool в контейнерах, и непонятно, почему нет готового Docker-образа, который можно запуллить и запустить в режиме standalone.
 
 В итоге мне удалось развернуть Tarantool 3.2.0 на локальной машине Linux без контейнера, вручную прописал миграцию из файла `init.lua`, проверил свой код в Postman - всё работает.
+
+Проблема заключается в том, что инстанс в контейрере не запускается никак, даже если подключиться к нему в терминале и вручную прописать `tt start test_db`.
 
 3. Чтобы запустить и проверить работоспособность приложения, необходимо:
 - удалить файл docker-compose;
