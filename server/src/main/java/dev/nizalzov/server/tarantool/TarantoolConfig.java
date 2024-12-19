@@ -57,7 +57,7 @@ public class TarantoolConfig {
         return TarantoolClientFactory.createClient()
                 .withTarantoolClientConfig(makeClientConfig())
                 .withAddress(HOST, PORT)
-//                .withCredentials(USERNAME, PASSWORD)
+                .withCredentials(USERNAME, PASSWORD)
                 .withConnectionSelectionStrategy(PARALLEL_ROUND_ROBIN)
                 .withRetryingByNumberOfAttempts(
                         RETRIES,
