@@ -40,7 +40,7 @@
 ### Для запуска приложения:
 
 1. `mvn clean package`
-2. Тут должен быть `docker-compose-up`, но, к сожалению, ни официальная документация, ни Google, ни детальное изучение кода **testcontainers-java-tarantool-master** и **cartridge-java-master** не помогли добиться того, чтобы Tarantool 3.2.0 запустился в контейнере.
+2. Тут должен быть `docker-compose up`, но, к сожалению, ни официальная документация, ни Google, ни детальное изучение кода **testcontainers-java-tarantool-master** и **cartridge-java-master** не помогли добиться того, чтобы Tarantool 3.2.0 запустился в контейнере.
 Даже эта команда не работает (взял отсюда: https://www.tarantool.io/en/doc/2.11/how-to/getting_started_db/): 
 ```dockerfile
 docker run \
